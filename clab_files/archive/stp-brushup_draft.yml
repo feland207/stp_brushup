@@ -1,0 +1,59 @@
+name: stp-brushup
+
+mgmt:
+  network: stp-mgmt
+  ipv4-subnet: 172.50.50.0/24
+
+topology:
+  kinds:
+    linux:
+      image: debian:12
+      cpu: 0.5
+      memory: 128Mi                 # plenty for a pure L2 bridge, keeps the lab light
+
+  nodes:
+    # --- Triangle of 3 switches (sw1-sw2-sw3-sw1) ---
+    # Each node is a plain Debian container turned into a 2-port Linux
+    # kernel bridge with native 802.1D STP enabled via iproute2 alone
+    # (no bridge-utils/mstpd install needed for classic STP).
+    sw1:
+      kind: linux
+      mgmt-ipv4: 172.50.50.31
+      exec:
+        - ip link add name br0 type bridge
+        - ip link set br0 type bridge stp_state 1
+        - ip link set eth1 master br0
+        - ip link set eth2 master br0
+        - ip link set eth1 up
+        - ip link set eth2 up
+        - ip link set br0 up
+
+    sw2:
+      kind: linux
+      mgmt-ipv4: 172.50.50.32
+      exec:
+        - ip link add name br0 type bridge
+        - ip link set br0 type bridge stp_state 1
+        - ip link set eth1 master br0
+        - ip link set eth2 master br0
+        - ip link set eth1 up
+        - ip link set eth2 up
+        - ip link set br0 up
+
+    sw3:
+      kind: linux
+      mgmt-ipv4: 172.50.50.33
+      exec:
+        - ip link add name br0 type bridge
+        - ip link set br0 type bridge stp_state 1
+        - ip link set eth1 master br0
+        - ip link set eth2 master br0
+        - ip link set eth1 up
+        - ip link set eth2 up
+        - ip link set br0 up
+
+  links:
+    # --- The loop ---
+    - endpoints: ["sw1:eth1", "sw2:eth1"]
+    - endpoints: ["sw2:eth2", "sw3:eth1"]
+    - endpoints: ["sw3:eth2", "sw1:eth2"]

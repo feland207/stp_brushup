@@ -1,0 +1,90 @@
+name: stp-practice
+
+mgmt:
+  network: stp-mgmt
+  ipv4-subnet: 172.50.50.0/24
+
+topology:
+  kinds:
+    linux:
+      image: debian:12
+      cpu: 0.5
+      memory: 128Mi                 # plenty for a bridge or a simple host
+
+  nodes:
+    # --- Triangle of 3 switches (sw1-sw2-sw3-sw1) ---
+    # Each node is a plain Debian container turned into a 2-port Linux
+    # kernel bridge with native 802.1D STP enabled via iproute2 alone
+    # (no bridge-utils/mstpd install needed for classic STP).
+    sw1:
+      kind: linux
+      mgmt-ipv4: 172.50.50.31
+      binds:
+        - ../scripts/install-tools.sh:/scripts/install-tools.sh:ro
+        - ../scripts/configure-switch.sh:/scripts/configure-switch.sh:ro
+      env:
+        BRIDGE_IFACES: "eth1 eth2 eth3"   # eth3 goes to host1
+        BRIDGE_IP: "192.168.99.31/24"
+      exec:
+        - sh /scripts/install-tools.sh
+        - sh /scripts/configure-switch.sh
+
+    sw2:
+      kind: linux
+      mgmt-ipv4: 172.50.50.32
+      binds:
+        - ../scripts/install-tools.sh:/scripts/install-tools.sh:ro
+        - ../scripts/configure-switch.sh:/scripts/configure-switch.sh:ro
+      env:
+        BRIDGE_IFACES: "eth1 eth2"        # no host attached here
+        BRIDGE_IP: "192.168.99.32/24"
+      exec:
+        - sh /scripts/install-tools.sh
+        - sh /scripts/configure-switch.sh
+
+    sw3:
+      kind: linux
+      mgmt-ipv4: 172.50.50.33
+      binds:
+        - ../scripts/install-tools.sh:/scripts/install-tools.sh:ro
+        - ../scripts/configure-switch.sh:/scripts/configure-switch.sh:ro
+      env:
+        BRIDGE_IFACES: "eth1 eth2 eth3"   # eth3 goes to host3
+        BRIDGE_IP: "192.168.99.33/24"
+      exec:
+        - sh /scripts/install-tools.sh
+        - sh /scripts/configure-switch.sh
+
+    # --- Edge hosts for real end-to-end traffic ---
+    host1:
+      kind: linux
+      mgmt-ipv4: 172.50.50.101
+      binds:
+        - ../scripts/install-tools.sh:/scripts/install-tools.sh:ro
+        - ../scripts/configure-host.sh:/scripts/configure-host.sh:ro
+      env:
+        HOST_IP: "192.168.99.101/24"
+      exec:
+        - sh /scripts/install-tools.sh
+        - sh /scripts/configure-host.sh
+
+    host3:
+      kind: linux
+      mgmt-ipv4: 172.50.50.103
+      binds:
+        - ../scripts/install-tools.sh:/scripts/install-tools.sh:ro
+        - ../scripts/configure-host.sh:/scripts/configure-host.sh:ro
+      env:
+        HOST_IP: "192.168.99.103/24"
+      exec:
+        - sh /scripts/install-tools.sh
+        - sh /scripts/configure-host.sh
+
+  links:
+    # --- The loop ---
+    - endpoints: ["sw1:eth1", "sw2:eth1"]
+    - endpoints: ["sw2:eth2", "sw3:eth1"]
+    - endpoints: ["sw3:eth2", "sw1:eth2"]
+    # --- Edge hosts ---
+    - endpoints: ["sw1:eth3", "host1:eth1"]
+    - endpoints: ["sw3:eth3", "host3:eth1"]
