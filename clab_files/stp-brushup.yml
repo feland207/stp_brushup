@@ -2,7 +2,7 @@ name: stp-practice
 
 mgmt:
   network: stp-mgmt
-  ipv4-subnet: 172.50.50.0/24
+  ipv4-subnet: 172.70.70.0/24
 
 topology:
   kinds:
@@ -18,39 +18,42 @@ topology:
     # (no bridge-utils/mstpd install needed for classic STP).
     sw1:
       kind: linux
-      mgmt-ipv4: 172.50.50.31
+      mgmt-ipv4: 172.70.70.31
       binds:
         - ../scripts/install-tools.sh:/scripts/install-tools.sh:ro
         - ../scripts/configure-switch.sh:/scripts/configure-switch.sh:ro
       env:
         BRIDGE_IFACES: "eth1 eth2 eth3"   # eth3 goes to host1
         BRIDGE_IP: "192.168.99.31/24"
+        STP_PRIORITY: 4096
       exec:
         - sh /scripts/install-tools.sh
         - sh /scripts/configure-switch.sh
 
     sw2:
       kind: linux
-      mgmt-ipv4: 172.50.50.32
+      mgmt-ipv4: 172.70.70.32
       binds:
         - ../scripts/install-tools.sh:/scripts/install-tools.sh:ro
         - ../scripts/configure-switch.sh:/scripts/configure-switch.sh:ro
       env:
         BRIDGE_IFACES: "eth1 eth2"        # no host attached here
         BRIDGE_IP: "192.168.99.32/24"
+        STP_PRIORITY: 1024
       exec:
         - sh /scripts/install-tools.sh
         - sh /scripts/configure-switch.sh
 
     sw3:
       kind: linux
-      mgmt-ipv4: 172.50.50.33
+      mgmt-ipv4: 172.70.70.33
       binds:
         - ../scripts/install-tools.sh:/scripts/install-tools.sh:ro
         - ../scripts/configure-switch.sh:/scripts/configure-switch.sh:ro
       env:
         BRIDGE_IFACES: "eth1 eth2 eth3"   # eth3 goes to host3
         BRIDGE_IP: "192.168.99.33/24"
+        STP_PRIORITY: 4096
       exec:
         - sh /scripts/install-tools.sh
         - sh /scripts/configure-switch.sh
@@ -58,7 +61,7 @@ topology:
     # --- Edge hosts for real end-to-end traffic ---
     host1:
       kind: linux
-      mgmt-ipv4: 172.50.50.101
+      mgmt-ipv4: 172.70.70.101
       binds:
         - ../scripts/install-tools.sh:/scripts/install-tools.sh:ro
         - ../scripts/configure-host.sh:/scripts/configure-host.sh:ro
@@ -70,7 +73,7 @@ topology:
 
     host3:
       kind: linux
-      mgmt-ipv4: 172.50.50.103
+      mgmt-ipv4: 172.70.70.103
       binds:
         - ../scripts/install-tools.sh:/scripts/install-tools.sh:ro
         - ../scripts/configure-host.sh:/scripts/configure-host.sh:ro
